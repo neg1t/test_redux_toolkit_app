@@ -1,35 +1,84 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useRef } from "react";
+import {
+  addTodo,
+  clearError,
+  fetchTodos,
+  removeTodo,
+  useAppDispatch,
+  useAppSelector,
+} from "./store";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { todos, loading, error } = useAppSelector((state) => state.todos);
+  const dispatch = useAppDispatch();
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    dispatch(fetchTodos());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (error) {
+      timer = setTimeout(() => {
+        dispatch(clearError());
+      }, 3000);
+    }
+    return () => {
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
+
+  const onAddClickHandler = () => {
+    dispatch(clearError());
+    dispatch(addTodo(inputRef.current?.value || ""));
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    inputRef.current!.value = "";
+    inputRef.current?.focus();
+  };
+
+  const onRemoveClickHandler = (todo: string) => () => {
+    dispatch(removeTodo(todo));
+  };
+
+  if (loading) {
+    return <span style={{ fontSize: 32 }}>Загрузка...</span>;
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: 200,
+          gap: 10,
+          marginBottom: 10,
+        }}
+      >
+        <input ref={inputRef} />
+
+        {error && <span style={{ color: "red" }}>{error}</span>}
+
+        <button onClick={onAddClickHandler}>Добавить</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+
+      <div style={{ width: 200 }}>
+        {todos.map((todo) => (
+          <div
+            style={{ display: "flex", justifyContent: "space-between" }}
+            key={todo}
+          >
+            <span>{todo}</span>
+            <button onClick={onRemoveClickHandler(todo)}>Удалить</button>
+          </div>
+        ))}
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
